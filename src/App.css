@@ -1,0 +1,122 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.signup_bg{
+  background: linear-gradient(to right, #667eea, #764ba2);
+
+}
+.login-container {
+  height: 100vh;
+  background: linear-gradient(to right, #667eea, #764ba2);
+  padding: 20px;
+  animation: fadeIn 1s ease;
+}
+
+.login-card {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.gradient-header {
+  background: linear-gradient(to right, #6a11cb, #2575fc);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.login-input-group input:focus {
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
+  border-color: #007bff;
+}
+
+.toggle-password {
+  background: transparent;
+  border: none;
+  color: #007bff;
+}
+
+.glow-on-hover {
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.glow-on-hover::after {
+  content: "";
+  background: linear-gradient(45deg, #6a11cb, #2575fc, #6a11cb);
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  animation: rotateGlow 4s linear infinite;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+@keyframes rotateGlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.company_model {
+  background-color: rgba(0, 0, 0, 0.603);
+}
+
+.swal2-popup {
+  font-size: 1rem;
+  border-radius: 10px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  min-width: 180px;
+}
+
+.dropdown-item {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.ca_visitor::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ca_visitor::-webkit-scrollbar-thumb {
+  background-color: #f370a8;
+  border-radius: 10px;
+}
+
+.ca_visitor::-webkit-scrollbar-track {
+  background-color: #ffe5e5;
+}
+
+/* Optional: Firefox support */
+.ca_visitor {
+  scrollbar-width: thin;
+  scrollbar-color: #f370a8 #ffe5e5;
+}

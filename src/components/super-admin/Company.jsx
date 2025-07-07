@@ -140,6 +140,33 @@ const handleDelete = (id) => {
   });
 };
 
+const handleToggleStatus = async (companyId) => {
+  try {
+    const token = localStorage.getItem('adminToken');
+    const response = await axios.patch(`${BaseUrl}/company/status/${companyId}`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+      fetchCompanies(); // Refresh list
+      Swal.fire({
+        icon: 'success',
+        title: 'Status Updated',
+        text: response.data.message,
+        timer: 1500,
+        showConfirmButton: false
+      });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed',
+      text: 'Unable to update company status'
+    });
+  }
+};
+
 const handleUpdateClick = (company) => {
   setUpdateErrorMsg('');
   setCurrentCompany(company);
@@ -248,7 +275,12 @@ const generateCompanyUrl = (name) => {
                 </th>
                 <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"150px"}}>
                   <div className="d-flex align-items-center">
-                    <span className="fw-bold text-dark">Company Name</span>
+                    <span className="fw-bold text-dark">Company</span>
+                  </div>
+                </th>
+                <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"150px"}}>
+                  <div className="d-flex align-items-center">
+                    <span className="fw-bold text-dark">Name</span>
                   </div>
                 </th>
                 <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"160px"}}>
@@ -256,9 +288,19 @@ const generateCompanyUrl = (name) => {
                     <span className="fw-bold text-dark">Email</span>
                   </div>
                 </th>
+                <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"160px"}}>
+                  <div className="d-flex align-items-center">
+                    <span className="fw-bold text-dark">Category</span>
+                  </div>
+                </th>
                 <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"100px"}}>
                   <div className="d-flex align-items-center">
                     <span className="fw-bold text-dark">URL</span>
+                  </div>
+                </th>
+                <th scope="col" className="border-0 py-4 px-xxl-2" style={{minWidth:"100px"}}>
+                  <div className="d-flex align-items-center">
+                    <span className="fw-bold text-dark">Status</span>
                   </div>
                 </th>
                 <th scope="col" className="text-center border-0 py-4 px-xxl-2" style={{width:"180px"}}>
@@ -281,12 +323,22 @@ const generateCompanyUrl = (name) => {
                     </td>
                     <td className="border-0 py-4 px-xxl-2">
                       <div className="company-name">
+                        <span className="fw-semibold text-dark" style={{ fontSize: '15px', letterSpacing: '0.3px',}}> {c.company}</span>
+                      </div>
+                    </td>
+                    <td className="border-0 py-4 px-xxl-2">
+                      <div className="company-name">
                         <span className="fw-semibold text-dark" style={{ fontSize: '15px', letterSpacing: '0.3px',}}> {c.name}</span>
                       </div>
                     </td>
                     <td className="border-0 py-4 px-xxl-2">
                       <div className="email-container">
                         <span className="text-muted" style={{ fontSize: '14px', wordBreak: 'break-word',}}> {c.email}</span>
+                      </div>
+                    </td>
+                    <td className="border-0 py-4 px-xxl-2">
+                      <div className="email-container">
+                        <span className="text-muted" style={{ fontSize: '14px', wordBreak: 'break-word',}}> {c.category}</span>
                       </div>
                     </td>
                    
@@ -301,13 +353,28 @@ const generateCompanyUrl = (name) => {
                         )}
                       </div>
                     </td>
+<td className="border-0 py-4 px-xxl-2">
+  <div className="d-flex align-items-center gap-2">
+    <span className={`badge ${c.isActive ? 'bg-success' : 'bg-secondary'}`}>
+      {c.isActive ? 'Active' : 'Inactive'}
+    </span>
+    <button
+      className={`btn btn-sm ${c.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+      style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '6px' }}
+      onClick={() => handleToggleStatus(c._id)}
+    >
+      {c.isActive ? 'Deactivate' : 'Activate'}
+    </button>
+  </div>
+</td>
+
                     <td className="text-end border-0 py-4 px-xxl-2">
                       <div className="action-buttons d-flex justify-content-end gap-2">
-                        <button className="btn btn-sm action-btn update-btn" onClick={() => handleUpdateClick(c)}
+                        {/* <button className="btn btn-sm action-btn update-btn" onClick={() => handleUpdateClick(c)}
                           style={{ backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7', borderRadius: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s ease', textTransform: 'capitalize',}}
                           onMouseEnter={(e) => { e.target.style.backgroundColor = '#ffc107'; e.target.style.color = '#ffffff'; e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 8px rgba(255, 193, 7, 0.3)';}}
                           onMouseLeave={(e) => { e.target.style.backgroundColor = '#fff3cd'; e.target.style.color = '#856404'; e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none';}}
-                        > Edit</button>
+                        > Edit</button> */}
                         <button className="btn btn-sm action-btn delete-btn" onClick={() => handleDelete(c._id)}
                           style={{ backgroundColor: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb', borderRadius: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '600', transition: 'all 0.2s ease', textTransform: 'capitalize',}}
                           onMouseEnter={(e) => { e.target.style.backgroundColor = '#dc3545'; e.target.style.color = '#ffffff'; e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 8px rgba(220, 53, 69, 0.3)';}}
@@ -322,7 +389,7 @@ const generateCompanyUrl = (name) => {
                   <td colSpan="10" className="text-center py-5 border-0">
                     <div className="no-data-container" style={{ padding: '40px 20px', color: '#6c757d', backgroundColor: '#f8f9fa', borderRadius: '12px', margin: '20px', }} >
                       <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>📊</div>
-                      <h5 style={{ marginBottom: '8px', color: '#495057' }}>No companies found</h5>
+                      <h5 style={{ marginBottom: '8px', color: '#495057' }}>No users found</h5>
                       <p style={{ margin: 0, fontSize: '14px' }}>Try adjusting your search criteria</p>
                     </div>
                   </td>

@@ -84,7 +84,7 @@ const stopScanner = () => {
 
 const handleScanResult = async (result) => {
   // console.log("Raw Scanned Result:", result);
-  // window.location.href = result;
+  window.location.href = result;
 
   const scanId = result?.split('/').pop();
    console.log("Raw Scanned Result:", scanId);

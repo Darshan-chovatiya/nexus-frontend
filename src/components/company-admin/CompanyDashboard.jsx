@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import CompanyQR from './CompanyQR';
+import axios from 'axios';
 import CommonHeader from './CommonHeader';
 import { BaseUrl } from '../service/Uri';
 import { BrowserQRCodeReader } from '@zxing/browser';
@@ -83,9 +84,6 @@ const stopScanner = () => {
 
 
 const handleScanResult = async (result) => {
-  // console.log("Raw Scanned Result:", result);
-  window.location.href = result;
-
   const scanId = result?.split('/').pop();
    console.log("Raw Scanned Result:", scanId);
 
@@ -99,17 +97,13 @@ const handleScanResult = async (result) => {
 
   try {
     const res = await axios.post(`${BaseUrl}/scan/${scanId}`, { scannerId });
+  window.location.href = result;
 
-    if (res.data?.success) {
-      alert("Scan saved successfully!");
-    } else {
-      alert("Scan failed: " + res.data?.message);
-    }
   } catch (err) {
     console.error("Scan error:", err.response?.data || err.message);
-    // alert("Something went wrong while saving scan.");
-  }
-};
+    alert("Something went wrong while saving scan.");
+  } 
+};  
 
   useEffect(() => {
     if (scanResult) {

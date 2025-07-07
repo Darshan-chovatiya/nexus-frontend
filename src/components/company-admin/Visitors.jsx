@@ -141,7 +141,7 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
     </div>
   )}
 
-  <style jsx>{`
+  <style>{`
     .company-card {
       transition: all 0.3s ease;
       cursor: pointer;

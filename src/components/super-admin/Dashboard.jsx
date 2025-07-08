@@ -8,12 +8,32 @@ import moment from 'moment';
 const Dashboard = () => {
   const token = localStorage.getItem('adminToken');
   const [stats, setStats] = useState({ totalCompanies: 0, totalVisitor: 0 });
-
   const [banners, setBanners] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewURL, setPreviewURL] = useState('');
   const [updateId, setUpdateId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [slotDate, setSlotDate] = useState('');
+  const [slotCreationLoading, setSlotCreationLoading] = useState(false);
+
+  const handleSlotCreation = async (e) => {
+    e.preventDefault();
+    try {
+      setSlotCreationLoading(true);
+      const res = await axios.post(`${BaseUrl}/slot/admin/slots/create`, {
+        date: slotDate,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Global slots created!");
+      setSlotDate('');
+    } catch (err) {
+      console.error("Slot creation error:", err.response?.data || err.message);
+      alert("Failed to create slots.");
+    } finally {
+      setSlotCreationLoading(false);
+    }
+  };
 
   const fetchBanners = async () => {
     try {
@@ -30,21 +50,17 @@ const Dashboard = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-
     if (file) {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       const maxSize = 2 * 1024 * 1024; // 2MB
-
       if (!allowedTypes.includes(file.type)) {
         alert('Only JPG, PNG, and WEBP images are allowed.');
         return;
       }
-
       if (file.size > maxSize) {
         alert('File size must be under 2MB.');
         return;
       }
-
       setSelectedFile(file);
       setPreviewURL(URL.createObjectURL(file));
     }
@@ -92,7 +108,6 @@ if (fileInput) fileInput.value = '';
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this banner?')) return;
-
     try {
       await axios.delete(`${BaseUrl}/banner/banners/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -102,7 +117,6 @@ if (fileInput) fileInput.value = '';
       console.error('Delete failed', err);
     }
   };
-
 
   const fetchStats = async () => {
     try {
@@ -157,6 +171,32 @@ if (fileInput) fileInput.value = '';
           </div>
         </div>
       </div>
+
+    <div className="container mt-5">
+      <h4 className="mb-3">📅 Create Slots for Company</h4>
+      <form onSubmit={handleSlotCreation} className="row g-3 align-items-end">
+        <div className="col-md-4">
+          <label className="form-label">Date</label>
+          <input
+            type="date"
+            className="form-control"
+            value={slotDate}
+            onChange={(e) => setSlotDate(e.target.value)}
+            min={moment().format("YYYY-MM-DD")}
+          />
+        </div>
+        <div className="col-md-4">
+          <button
+            type="submit"
+            className="btn btn-success w-100"
+            disabled={slotCreationLoading}
+          >
+            {slotCreationLoading ? 'Creating...' : 'Create Slots'}
+          </button>
+        </div>
+      </form>
+    </div>
+
 
 <div className="container mt-4">
       <h4 className="mb-3">🖼️ Manage Banners</h4>

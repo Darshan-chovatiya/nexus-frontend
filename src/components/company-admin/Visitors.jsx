@@ -7,6 +7,56 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
   const company = JSON.parse(localStorage.getItem('company'));
   const [otherCompanies, setOtherCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [slots, setSlots] = useState([]);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [slotLoading, setSlotLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+
+const fetchSlotsForDate = async (date, userId) => {
+    if (!userId) return;
+    setSlotLoading(true);
+    try {
+      const token = localStorage.getItem("companyToken");
+      const res = await axios.get(`${BaseUrl}/slot/pair-slots/${date}/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSlots(res.data || []);
+      setSelectedSlotId(null);
+    } catch (err) {
+      console.error("Error fetching slots:", err);
+      alert("Failed to load slots");
+    } finally {
+      setSlotLoading(false);
+    }
+  };
+
+  const handleBookSlot = async () => {
+    if (!selectedSlotId || !selectedUserId) {
+      alert("Please select a slot and a user.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("companyToken");
+      await axios.post(`${BaseUrl}/slot/pair-slots/book`, {
+        date: selectedDate,
+        slotId: selectedSlotId,
+        withUserId: selectedUserId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert("Slot booked successfully!");
+      setShowSlotModal(false);
+      fetchSlotsForDate(selectedDate, selectedUserId);
+    } catch (err) {
+      console.error("Booking failed:", err.response?.data || err.message);
+      alert("Booking failed: " + (err.response?.data?.error || err.message));
+    }
+  };
 
   const fetchOtherCompanies = async () => {
     try {
@@ -17,6 +67,7 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
         }
       });
       setOtherCompanies(res.data.data);
+      setUsers(res.data.data);
     } catch (err) {
       console.error("Error fetching companies:", err.response?.data || err.message);
     } finally {
@@ -129,10 +180,20 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
 
               {/* Action Buttons */}
               <div className="d-flex gap-2">
-                <button className="btn btn-primary btn-sm rounded-pill flex-fill">
-                  <i className="fas fa-eye me-1"></i>
-                  Book Slot
-                </button>
+      <button
+        className="btn btn-primary btn-sm rounded-pill flex-fill"
+        onClick={() => {
+          const today = new Date().toISOString().split('T')[0];
+          setSelectedDate(today);
+          setShowSlotModal(true);
+          setSelectedUserId('');
+          setSlots([]);
+        }}
+      >
+        <i className="fas fa-eye me-1"></i>
+        Book Pair Slot
+      </button>
+
               </div>
             </div>
           </div>
@@ -140,6 +201,83 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
       ))}
     </div>
   )}
+{showSlotModal && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Book Pair Slot - {selectedDate}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowSlotModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">Select Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      if (selectedUserId) {
+                        fetchSlotsForDate(e.target.value, selectedUserId);
+                      }
+                    }}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Select User to Book With</label>
+                  <select
+                    className="form-control"
+                    value={selectedUserId}
+                    onChange={(e) => {
+                      setSelectedUserId(e.target.value);
+                      fetchSlotsForDate(selectedDate, e.target.value);
+                    }}
+                  >
+                    <option value="">Select a user</option>
+                    {users.map(user => (
+                      <option key={user._id} value={user._id}>{user.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {slotLoading ? (
+                  <p>Loading slots...</p>
+                ) : !slots.length ? (
+                  <p className="text-muted">No slots available.</p>
+                ) : (
+                  <div className="row">
+                    {slots.map(slot => (
+                      <div className="col-md-3 mb-3" key={slot._id}>
+                        <div
+                          className={`p-2 border rounded text-center ${
+                            selectedSlotId === slot._id ? 'bg-success text-white' : 'bg-white'
+                          }`}
+                          onClick={() => setSelectedSlotId(slot._id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {slot.startTime} - {slot.endTime}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowSlotModal(false)}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleBookSlot}
+                  disabled={!selectedSlotId || !selectedUserId}
+                >
+                  Book Selected Slot
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
   <style>{`
     .company-card {

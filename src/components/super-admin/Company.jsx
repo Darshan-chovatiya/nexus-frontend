@@ -353,20 +353,20 @@ const generateCompanyUrl = (name) => {
                         )}
                       </div>
                     </td>
-<td className="border-0 py-4 px-xxl-2">
-  <div className="d-flex align-items-center gap-2">
-    <span className={`badge ${c.isActive ? 'bg-success' : 'bg-secondary'}`}>
-      {c.isActive ? 'Active' : 'Inactive'}
-    </span>
-    <button
-      className={`btn btn-sm ${c.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
-      style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '6px' }}
-      onClick={() => handleToggleStatus(c._id)}
-    >
-      {c.isActive ? 'Deactivate' : 'Activate'}
-    </button>
-  </div>
-</td>
+                    <td className="border-0 py-4 px-xxl-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className={`badge ${c.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                          {c.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        <button
+                          className={`btn btn-sm ${c.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                          style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '6px' }}
+                          onClick={() => handleToggleStatus(c._id)}
+                        >
+                          {c.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </td>
 
                     <td className="text-end border-0 py-4 px-xxl-2">
                       <div className="action-buttons d-flex justify-content-end gap-2">

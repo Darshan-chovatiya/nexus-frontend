@@ -35,7 +35,7 @@ const CommonHeader = ({ title, company, toggleSidebar, setCurrentPage }) => {
   };
 
   return (
-    <header className="d-flex justify-content-between align-items-center p-3 shadow-sm bg-white sticky-top" style={{ zIndex: 1 }}>
+    <header className="d-flex justify-content-between align-items-center p-3 shadow-sm bg-white sticky-top" style={{ zIndex: 99 }}>
       <div className="d-flex align-items-center gap-3">
         <FaBars size={22} className="cursor-pointer d-lg-none" onClick={(e) => {e.stopPropagation();toggleSidebar();}}/>
         <h4 className="mb-0 fw-bold text-primary">{title}</h4>

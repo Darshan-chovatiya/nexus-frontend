@@ -5,10 +5,20 @@ import CommonHeader from './CommonHeader';
 import { BaseUrl } from '../service/Uri';
 import { BrowserQRCodeReader } from '@zxing/browser';
 
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import 'swiper/css/autoplay';
+import SwiperCore from 'swiper';
+import { Autoplay } from 'swiper/modules';
+
+SwiperCore.use([Autoplay]);
+
+
 const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const company = JSON.parse(localStorage.getItem('company'));
   const [scanQr, setScanQr] = useState(false);
   const [scanResult, setScanResult] = useState('');
+  const [banners, setBanners] = useState([]);
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
 
@@ -111,9 +121,52 @@ const handleScanResult = async (result) => {
     }
   }, [scanResult]);
 
+
+useEffect(() => {
+  const fetchBanners = async () => {
+    try {
+      const res = await axios.get(`${BaseUrl}/banner/banners`);
+      setBanners(res.data);
+    } catch (err) {
+      console.error("Failed to fetch banners:", err);
+    }
+  };
+
+  fetchBanners();
+}, []);
+
   return (
     <div className="container-fluid p-0">
       <CommonHeader title="Dashboard" company={company} toggleSidebar={toggleSidebar} setCurrentPage={setCurrentPage} />
+
+      <div>
+        {banners.length > 0 && (
+  <div className="container mt-3">
+    <Swiper
+      spaceBetween={10}
+      slidesPerView={1}
+      loop={true}
+      autoplay={{ delay: 3000 }}
+    >
+      {banners.map((banner) => (
+        <SwiperSlide key={banner._id}>
+          <img
+            src={`${BaseUrl}${banner.imageUrl}`}
+            alt="Banner"
+            style={{
+              width: '100%',
+              height: '400px',
+              objectFit: 'cover',
+              borderRadius: '10px'
+            }}
+          />
+        </SwiperSlide>
+      ))}
+    </Swiper>
+  </div>
+)}
+
+      </div>
 
       <div className="row g-4 mt-3">
         {/* Left column - Company Info */}

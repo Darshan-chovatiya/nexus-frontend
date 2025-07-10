@@ -143,9 +143,9 @@ if (fileInput) fileInput.value = '';
             <div className="card-body p-4 text-white">
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <h6 className="text-white-75 mb-1">Total Companies</h6>
+                  <h6 className="text-white-75 mb-1">Total Users</h6>
                   <h2 className="mb-0 fw-bold">{stats.totalCompanies}</h2>
-                  <small className="text-white-75">All time companies</small>
+                  <small className="text-white-75">All time Users</small>
                 </div>
                 <div className="bg-white bg-opacity-20 p-3 rounded-circle">
                   <FaUsers size={24} className='text-black' />
@@ -173,7 +173,7 @@ if (fileInput) fileInput.value = '';
       </div>
 
     <div className="container mt-5">
-      <h4 className="mb-3">📅 Create Slots for Company</h4>
+      <h4 className="mb-3">📅 Create Slots for Users</h4>
       <form onSubmit={handleSlotCreation} className="row g-3 align-items-end">
         <div className="col-md-4">
           <label className="form-label">Date</label>
@@ -198,7 +198,7 @@ if (fileInput) fileInput.value = '';
     </div>
 
 
-<div className="container mt-4">
+<div className="container mt-5">
       <h4 className="mb-3">🖼️ Manage Banners</h4>
 
       <form onSubmit={handleSubmit} className="mb-4">

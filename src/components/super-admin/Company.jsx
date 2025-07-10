@@ -257,7 +257,7 @@ const generateCompanyUrl = (name) => {
 
       <div className="mb-3 d-flex align-items-center justify-content-between">
         <div>
-          <input type="text" className="form-control" placeholder="Search company..." value={search} onChange={(e) => setSearch(e.target.value)}/>
+          <input type="text" className="form-control" placeholder="Search Users..." value={search} onChange={(e) => setSearch(e.target.value)}/>
         </div>
       </div>
 

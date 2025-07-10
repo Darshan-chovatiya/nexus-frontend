@@ -112,6 +112,14 @@ const CompanySignup = () => {
               </div>
             </div>
 
+            <div className="col-12">
+              <label className="form-label">Mobile No</label>
+              <div className="input-group">
+                <span className="input-group-text"><FaIdCard /></span>
+                <input type="number" className="form-control" name="mobile" value={form.mobile} onChange={handleChange} required />
+              </div>
+            </div>
+
             <div className="col-md-6">
               <label className="form-label">State</label>
               <div className="input-group">

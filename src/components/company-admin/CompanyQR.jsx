@@ -11,7 +11,7 @@ const CompanyQR = ({ companyId }) => {
       <div className="card-body text-center p-4">
         <div className="mb-3">
           <FaQrcode size={24} className="text-primary mb-2" />
-          <h6 className="fw-bold text-primary">Company QR Code</h6>
+          <h6 className="fw-bold text-primary">Your QR Code</h6>
         </div>
         <div className="d-flex justify-content-center mb-3">
           <div className="p-3 bg-white shadow rounded-3">

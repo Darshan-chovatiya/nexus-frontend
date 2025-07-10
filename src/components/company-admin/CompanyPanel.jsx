@@ -33,7 +33,7 @@ const CompanyPanel = () => {
     switch (currentPage) {
       case 'Dashboard':
         return <CompanyDashboard setCurrentPage={setCurrentPage} toggleSidebar={toggleSidebar} />;
-      case 'Visitors':
+      case 'Users':
         return <Visitors setCurrentPage={setCurrentPage} toggleSidebar={toggleSidebar} isOpen={isOpen}/>;
       case 'Account Setting':
         return <ProfileSetting setCurrentPage={setCurrentPage} toggleSidebar={toggleSidebar} />;
@@ -48,7 +48,7 @@ const CompanyPanel = () => {
     <>
       <div className="d-flex" style={{ background: '#f8f9fb', minHeight: '100vh' }}>
         <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} currentPage={currentPage} setCurrentPage={(name) => { setCurrentPage(name); if (isMobile) setIsOpen(false); }}/>
-        <div className="flex-grow-1 p-3" style={{ transition: 'margin-left 0.3s ease' }}>{renderContent()}</div>
+        <div className="flex-grow-1 p-3" style={{ transition: 'margin-left 0.3s ease', maxWidth:isMobile ? 'calc(100vw - 0px)' : isOpen ? 'calc(100vw - 280px)' : 'calc(100vw - 70px)' }}>{renderContent()}</div>
       </div>
 
       {isMobile && isOpen && (

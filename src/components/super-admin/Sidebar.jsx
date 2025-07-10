@@ -42,7 +42,7 @@ const Sidebar = ({ isOpen, toggleSidebar, currentPage, setCurrentPage, isMobile 
 
   const sidebarItems = [
     { name: 'Dashboard', icon: <FaTachometerAlt /> },
-    { name: 'Company', icon: <FaBuilding /> },
+    { name: 'Users', icon: <FaBuilding /> },
     { name: 'Account Setting', icon: <IoMdSettings /> },
     { name: 'Logout', icon: <FaSignOutAlt /> },
   ];

@@ -12,7 +12,6 @@ const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
   const [slots, setSlots] = useState([]);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [slotLoading, setSlotLoading] = useState(false);
-  const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
 
 const fetchSlotsForDate = async (date, userId) => {
@@ -67,7 +66,6 @@ const fetchSlotsForDate = async (date, userId) => {
         }
       });
       setOtherCompanies(res.data.data);
-      setUsers(res.data.data);
     } catch (err) {
       console.error("Error fetching companies:", err.response?.data || err.message);
     } finally {
@@ -95,7 +93,7 @@ const fetchSlotsForDate = async (date, userId) => {
       All Users
     </h4>
     <span className="badge bg-primary rounded-pill px-3 py-2">
-      {otherCompanies.length} Companies
+      {otherCompanies.length} Users
     </span>
   </div>
 
@@ -117,7 +115,7 @@ const fetchSlotsForDate = async (date, userId) => {
   ) : (
     <div className="row g-4">
       {otherCompanies.map((comp) => (
-        <div className="col-lg-4 col-md-6" key={comp._id}>
+        <div className="col-xl-4 col-md-6" key={comp._id}>
           <div className="card border-0 shadow-sm rounded-4 h-100 overflow-hidden company-card">
             <div className="card-body p-4">
               {/* Header */}
@@ -182,16 +180,16 @@ const fetchSlotsForDate = async (date, userId) => {
               <div className="d-flex gap-2">
       <button
         className="btn btn-primary btn-sm rounded-pill flex-fill"
-        onClick={() => {
-          const today = new Date().toISOString().split('T')[0];
-          setSelectedDate(today);
-          setShowSlotModal(true);
-          setSelectedUserId('');
-          setSlots([]);
-        }}
+onClick={() => {
+  const today = new Date().toISOString().split('T')[0];
+  setSelectedDate(today);
+  setSelectedUserId(comp._id); // ✅ set the clicked user ID
+  setShowSlotModal(true);
+  fetchSlotsForDate(today, comp._id); // ✅ fetch slots instantly
+}}
       >
         <i className="fas fa-eye me-1"></i>
-        Book Pair Slot
+        Book Slot
       </button>
 
               </div>
@@ -225,7 +223,7 @@ const fetchSlotsForDate = async (date, userId) => {
                     min={new Date().toISOString().split("T")[0]}
                   />
                 </div>
-                <div className="mb-3">
+                {/* <div className="mb-3">
                   <label className="form-label">Select User to Book With</label>
                   <select
                     className="form-control"
@@ -240,7 +238,7 @@ const fetchSlotsForDate = async (date, userId) => {
                       <option key={user._id} value={user._id}>{user.name}</option>
                     ))}
                   </select>
-                </div>
+                </div> */}
                 {slotLoading ? (
                   <p>Loading slots...</p>
                 ) : !slots.length ? (

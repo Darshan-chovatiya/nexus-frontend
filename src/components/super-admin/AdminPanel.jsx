@@ -30,7 +30,7 @@ const AdminPanel = () => {
     switch (currentPage) {
       case 'Dashboard':
         return <Dashboard />;
-      case 'Company':
+      case 'Users':
         return <Company isOpen={isSidebarOpen}/>;
       case 'Account Setting':
         return <ProfileSetting />;

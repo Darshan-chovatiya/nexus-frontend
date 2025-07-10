@@ -43,14 +43,14 @@ const handleItemClick = (name) => {
 };
 const sidebarItems = [
   { name: 'Dashboard', icon: <FaTachometerAlt /> },
-  { name: 'Visitors', icon: <FaUserFriends /> },
+  { name: 'Users', icon: <FaUserFriends /> },
   { name: 'Account Setting', icon: <IoMdSettings /> },
   { name: 'Logout', icon: <FaSignOutAlt /> },
 ];
 
 const CompanyInfo = JSON.parse(localStorage.getItem('company'));
 const isMobile = window.innerWidth < 992;
-const sidebarStyle = { minHeight: '100vh', width: isOpen ? (isMobile ? '260px' : '280px') : (isMobile ? '0' : '70px'), transition: 'all 0.3s ease-in-out', background: 'linear-gradient(rgb(26, 26, 46) 0%, rgb(22, 33, 62) 50%, rgb(15, 52, 96) 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', position: isMobile ? 'fixed' : 'relative', zIndex: 999, top: 0, left: 0, overflowX: 'hidden',};
+const sidebarStyle = { minHeight: '100vh', maxWidth: isOpen ? (isMobile ? '260px' : '280px') : (isMobile ? '0' : '70px'), minWidth: isOpen ? (isMobile ? '260px' : '280px') : (isMobile ? '0' : '70px'), transition: 'all 0.3s ease-in-out', background: 'linear-gradient(rgb(26, 26, 46) 0%, rgb(22, 33, 62) 50%, rgb(15, 52, 96) 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', position: isMobile ? 'fixed' : 'relative', zIndex: 999, top: 0, left: 0, overflowX: 'hidden',};
 
 useEffect(() => {
   const handleOutsideClick = (e) => {

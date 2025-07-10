@@ -4,7 +4,6 @@ import axios from 'axios';
 import CommonHeader from './CommonHeader';
 import { BaseUrl } from '../service/Uri';
 import { BrowserQRCodeReader } from '@zxing/browser';
-
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/autoplay';
@@ -13,7 +12,6 @@ import { Autoplay } from 'swiper/modules';
 
 SwiperCore.use([Autoplay]);
 
-
 const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const company = JSON.parse(localStorage.getItem('company'));
   const [scanQr, setScanQr] = useState(false);
@@ -21,9 +19,64 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const [banners, setBanners] = useState([]);
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
+  const [myBookings, setMyBookings] = useState([]);
+  const [pendingSent, setPendingSent] = useState([]);
+  const [pendingReceived, setPendingReceived] = useState([]);
+  const [activeTab, setActiveTab] = useState('booked');
+
+  const fetchMyBookings = async () => {
+    try {
+      const token = localStorage.getItem("companyToken");
+      const [bookedRes, sentRes, receivedRes] = await Promise.all([
+        axios.get(`${BaseUrl}/slot/pair-slot/booked`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${BaseUrl}/slot/pair-slot/pending-sent`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${BaseUrl}/slot/pair-slot/pending-received`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setMyBookings(bookedRes.data);
+      setPendingSent(sentRes.data);
+      setPendingReceived(receivedRes.data);
+    } catch (err) {
+      console.error("Error fetching bookings:", err.response?.data || err.message);
+    }
+  };
 
   useEffect(() => {
-    // Clean up when component unmounts
+    fetchMyBookings();
+  }, []);
+
+  const handleApprove = async (slotId) => {
+    try {
+      const token = localStorage.getItem("companyToken");
+      await axios.patch(`${BaseUrl}/slot/pair-slots/approve/${slotId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchMyBookings(); // Refresh all lists
+    } catch (err) {
+      console.error("Error approving slot:", err.response?.data || err.message);
+      alert("Failed to approve slot");
+    }
+  };
+
+  const handleCancel = async (slotId) => {
+    try {
+      const token = localStorage.getItem("companyToken");
+      await axios.delete(`${BaseUrl}/slot/pair-slots/cancel/${slotId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchMyBookings(); // Refresh all lists
+    } catch (err) {
+      console.error("Error cancelling slot:", err.response?.data || err.message);
+      alert("Failed to cancel slot");
+    }
+  };
+
+  useEffect(() => {
     return () => {
       if (codeReaderRef.current) {
         codeReaderRef.current.reset();
@@ -32,88 +85,68 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
     };
   }, []);
 
-const startScanner = async () => {
-  try {
-    setScanQr(true);
-    setScanResult('');
+  const startScanner = async () => {
+    try {
+      setScanQr(true);
+      setScanResult('');
+      const codeReader = new BrowserQRCodeReader();
+      codeReaderRef.current = codeReader;
+      const devices = await BrowserQRCodeReader.listVideoInputDevices();
+      if (devices.length === 0) {
+        alert("No camera found.");
+        setScanQr(false);
+        return;
+      }
+      const backCamera = devices.find((device) =>
+        device.label.toLowerCase().includes('back')
+      ) || devices[devices.length - 1];
 
-    const codeReader = new BrowserQRCodeReader();
-    codeReaderRef.current = codeReader;
+      const selectedDeviceId = backCamera.deviceId;
 
-    const devices = await BrowserQRCodeReader.listVideoInputDevices();
-
-    if (devices.length === 0) {
-      alert("No camera found.");
+      await codeReader.decodeFromVideoDevice(
+        selectedDeviceId,
+        videoRef.current,
+        (result, error) => {
+          if (result) {
+            setScanResult(result.getText());
+            stopScanner();
+          }
+        }
+      );
+    } catch (err) {
+      console.error("Scanner Error:", err);
+      alert("Could not start scanner. Please check camera permissions.");
       setScanQr(false);
+    }
+  };
+
+  const stopScanner = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
+    }
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setScanQr(false);
+  };
+
+  const handleScanResult = async (result) => {
+    const scanId = result?.split('/').pop();
+    if (!scanId || scanId.length !== 24) {
+      alert("Invalid QR code format.");
       return;
     }
-
-    // ✅ Always pick back camera (usually the last one)
-    const backCamera = devices.find((device) =>
-      device.label.toLowerCase().includes('back')
-    ) || devices[devices.length - 1];
-
-    const selectedDeviceId = backCamera.deviceId;
-
-    await codeReader.decodeFromVideoDevice(
-      selectedDeviceId,
-      videoRef.current,
-      (result, error) => {
-        if (result) {
-          setScanResult(result.getText());
-          stopScanner(); // auto stop after successful scan
-        }
-        if (error) {
-          // Optional: console.warn('QR Scan Error:', error);
-        }
-      }
-    );
-  } catch (err) {
-    console.error("Scanner Error:", err);
-    alert("Could not start scanner. Please check camera permissions.");
-    setScanQr(false);
-  }
-};
-
-
-
-const stopScanner = () => {
-  if (codeReaderRef.current) {
-    codeReaderRef.current.reset();
-    codeReaderRef.current = null;
-  }
-
-  // 🔥 Properly stop camera stream
-  if (videoRef.current?.srcObject) {
-    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    videoRef.current.srcObject = null;
-  }
-
-  setScanQr(false);
-};
-
-
-const handleScanResult = async (result) => {
-  const scanId = result?.split('/').pop();
-   console.log("Raw Scanned Result:", scanId);
-
-
-  if (!scanId || scanId.length !== 24) {
-    alert("Invalid QR code format.");
-    return;
-  }
-
-  const scannerId = JSON.parse(localStorage.getItem("company"))?._id;
-
-  try {
-    const res = await axios.post(`${BaseUrl}/scan/${scanId}`, { scannerId });
-  window.location.href = result;
-
-  } catch (err) {
-    console.error("Scan error:", err.response?.data || err.message);
-    alert("Something went wrong while saving scan.");
-  } 
-};  
+    const scannerId = JSON.parse(localStorage.getItem("company"))?._id;
+    try {
+      const res = await axios.post(`${BaseUrl}/scan/${scanId}`, { scannerId });
+      window.location.href = result;
+    } catch (err) {
+      console.error("Scan error:", err.response?.data || err.message);
+      alert("Something went wrong while saving scan.");
+    }
+  };
 
   useEffect(() => {
     if (scanResult) {
@@ -121,19 +154,17 @@ const handleScanResult = async (result) => {
     }
   }, [scanResult]);
 
-
-useEffect(() => {
-  const fetchBanners = async () => {
-    try {
-      const res = await axios.get(`${BaseUrl}/banner/banners`);
-      setBanners(res.data);
-    } catch (err) {
-      console.error("Failed to fetch banners:", err);
-    }
-  };
-
-  fetchBanners();
-}, []);
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await axios.get(`${BaseUrl}/banner/banners`);
+        setBanners(res.data);
+      } catch (err) {
+        console.error("Failed to fetch banners:", err);
+      }
+    };
+    fetchBanners();
+  }, []);
 
   return (
     <div className="container-fluid p-0">
@@ -141,35 +172,32 @@ useEffect(() => {
 
       <div>
         {banners.length > 0 && (
-  <div className="container mt-3">
-    <Swiper
-      spaceBetween={10}
-      slidesPerView={1}
-      loop={true}
-      autoplay={{ delay: 3000 }}
-    >
-      {banners.map((banner) => (
-        <SwiperSlide key={banner._id}>
-          <img
-            src={`${BaseUrl}${banner.imageUrl}`}
-            alt="Banner"
-            style={{
-              width: '100%',
-              height: '400px',
-              objectFit: 'cover',
-              borderRadius: '10px'
-            }}
-          />
-        </SwiperSlide>
-      ))}
-    </Swiper>
-  </div>
-)}
-
+          <div className="container mt-3">
+            <Swiper
+              spaceBetween={10}
+              slidesPerView={1}
+              loop={true}
+              autoplay={{ delay: 3000 }}
+            >
+              {banners.map((banner) => (
+                <SwiperSlide key={banner._id}>
+                  <img
+                    src={`${BaseUrl}${banner.imageUrl}`}
+                    alt="Banner"
+                    style={{
+                      width: '100%',
+                      height: '400px',
+                      objectFit: 'cover',
+                      borderRadius: '10px' }}
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
       </div>
 
       <div className="row g-4 mt-3">
-        {/* Left column - Company Info */}
         <div className="col-md-6">
           <div className="card shadow-sm py-3 px-4">
             <div className="d-flex align-items-center">
@@ -184,43 +212,32 @@ useEffect(() => {
                 <small className="text-muted">{company?.email}</small>
               </div>
             </div>
-
             <hr />
-
             <div className="row">
               <div className="col-6 mb-2"><strong>Company:</strong></div>
               <div className="col-6 mb-2">{company?.company}</div>
-
               <div className="col-6 mb-2"><strong>State:</strong></div>
               <div className="col-6 mb-2">{company?.state}</div>
-
               <div className="col-6 mb-2"><strong>City:</strong></div>
               <div className="col-6 mb-2">{company?.city}</div>
-
               <div className="col-6 mb-2"><strong>Category:</strong></div>
               <div className="col-6 mb-2">{company?.category}</div>
-
-              <div className="col-6 mb-2"><strong>Role:</strong></div>
-              <div className="col-6 mb-2">{company?.role}</div>
+              <div className="col-6 mb-2"><strong>Mobile No.:</strong></div>
+              <div className="col-6 mb-2">{company?.mobile}</div>
             </div>
-
             <hr />
-
             <div>
               <strong>About Business:</strong>
               <p className="text-muted">{company?.aboutBusiness}</p>
-
               <strong>About Product:</strong>
               <p className="text-muted mb-0">{company?.aboutProduct}</p>
             </div>
           </div>
         </div>
 
-        {/* Right column - QR */}
         <div className="col-md-6">
           <CompanyQR companyId={company?._id} />
           
-          {/* QR Scanner Section */}
           <div className="card shadow-sm py-3 px-4 mt-4">
             {!scanQr ? (
               <button 
@@ -240,11 +257,10 @@ useEffect(() => {
                 
                 <div style={{ position: 'relative', width: '100%', height: '300px' }}>
                   <video
-  ref={videoRef}
-  playsInline
-  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-/>
-
+                    ref={videoRef}
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                  />
                   <div style={{
                     position: 'absolute',
                     top: '50%',
@@ -267,6 +283,149 @@ useEffect(() => {
                 Scanned successfully! ID: {scanResult}
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="col-12">
+          <div className="card shadow-sm py-3 px-4 mt-4">
+            <h5 className="mb-3">📅 Slot Management</h5>
+            
+            <ul className="nav nav-tabs mb-3">
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'booked' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('booked')}
+                >
+                  Booked Slots
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'sent' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('sent')}
+                >
+                  Sent Requests
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'received' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('received')}
+                >
+                  Received Requests
+                </button>
+              </li>
+            </ul>
+
+            <div className="table-responsive">
+              {activeTab === 'booked' && (
+                <table className="table table-bordered table-sm text-center">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Slot Time</th>
+                      <th>Booked With</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myBookings.length === 0 ? (
+                      <tr><td colSpan="3">No approved bookings</td></tr>
+                    ) : (
+                      myBookings.map(slot => {
+                        // const otherUser = slot.users.find(user => user._id !== company._id);
+                        return (
+                          <tr key={slot._id}>
+                            <td>{slot.date}</td>
+                            <td>{slot.startTime} - {slot.endTime}</td>
+                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              )}
+
+              {activeTab === 'sent' && (
+                <table className="table table-bordered table-sm text-center">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Slot Time</th>
+                      <th>Sent To</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingSent.length === 0 ? (
+                      <tr><td colSpan="4">No pending sent requests</td></tr>
+                    ) : (
+                      pendingSent.map(slot => {
+                        // const otherUser = slot.users.find(user => user._id !== company._id);
+                        return (
+                          <tr key={slot._id}>
+                            <td>{slot.date}</td>
+                            <td>{slot.startTime} - {slot.endTime}</td>
+                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                            <td>
+                              <button 
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleCancel(slot._id)}
+                              >
+                                Cancel
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              )}
+
+              {activeTab === 'received' && (
+                <table className="table table-bordered table-sm text-center">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Slot Time</th>
+                      <th>Requested By</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingReceived.length === 0 ? (
+                      <tr><td colSpan="4">No pending received requests</td></tr>
+                    ) : (
+                      pendingReceived.map(slot => {
+                        // const otherUser = slot.users.find(user => user._id !== company._id);
+                        return (
+                          <tr key={slot._id}>
+                            <td>{slot.date}</td>
+                            <td>{slot.startTime} - {slot.endTime}</td>
+                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                            <td>
+                              <button 
+                                className="btn btn-sm btn-success me-2"
+                                onClick={() => handleApprove(slot._id)}
+                              >
+                                Accept
+                              </button>
+                              <button 
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleCancel(slot._id)}
+                              >
+                                Reject
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       </div>

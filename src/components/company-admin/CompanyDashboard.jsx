@@ -9,6 +9,7 @@ import 'swiper/css';
 import 'swiper/css/autoplay';
 import SwiperCore from 'swiper';
 import { Autoplay } from 'swiper/modules';
+import Swal from 'sweetalert2';
 
 SwiperCore.use([Autoplay]);
 
@@ -56,10 +57,27 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       await axios.patch(`${BaseUrl}/slot/pair-slots/approve/${slotId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      Swal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: 'Slot Approved',
+        text: 'The slot has been successfully approved!',
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
       fetchMyBookings(); // Refresh all lists
     } catch (err) {
       console.error("Error approving slot:", err.response?.data || err.message);
-      alert("Failed to approve slot");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Approval Failed',
+        text: err.response?.data?.error || 'Failed to approve slot.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -69,10 +87,27 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       await axios.delete(`${BaseUrl}/slot/pair-slots/cancel/${slotId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+       Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Slot Cancelled',
+          text: 'The slot has been successfully cancelled!',
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
       fetchMyBookings(); // Refresh all lists
     } catch (err) {
       console.error("Error cancelling slot:", err.response?.data || err.message);
-      alert("Failed to cancel slot");
+      Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Cancellation Failed',
+          text: err.response?.data?.error || 'Failed to cancel slot.',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
     }
   };
 
@@ -93,7 +128,15 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       codeReaderRef.current = codeReader;
       const devices = await BrowserQRCodeReader.listVideoInputDevices();
       if (devices.length === 0) {
-        alert("No camera found.");
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'No Camera Found',
+          text: 'No camera found. Please ensure a camera is connected.',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
         setScanQr(false);
         return;
       }
@@ -115,7 +158,15 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       );
     } catch (err) {
       console.error("Scanner Error:", err);
-      alert("Could not start scanner. Please check camera permissions.");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Scanner Error',
+        text: 'Could not start scanner. Please check camera permissions.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
       setScanQr(false);
     }
   };
@@ -135,7 +186,15 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const handleScanResult = async (result) => {
     const scanId = result?.split('/').pop();
     if (!scanId || scanId.length !== 24) {
-      alert("Invalid QR code format.");
+     Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Invalid QR Code',
+        text: 'Invalid QR code format.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
       return;
     }
     const scannerId = JSON.parse(localStorage.getItem("company"))?._id;
@@ -144,7 +203,15 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       window.location.href = result;
     } catch (err) {
       console.error("Scan error:", err.response?.data || err.message);
-      alert("Something went wrong while saving scan.");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Scan Failed',
+        text: err.response?.data?.error || 'Something went wrong while saving scan.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 

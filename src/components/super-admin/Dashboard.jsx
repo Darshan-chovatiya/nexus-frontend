@@ -1,9 +1,9 @@
-// Dashboard.js
 import React, { useEffect, useState } from 'react';
 import { FaCalendarAlt, FaUsers } from 'react-icons/fa';
 import axios from 'axios';
 import { BaseUrl } from '../service/Uri';
 import moment from 'moment';
+import Swal from 'sweetalert2';
 
 const Dashboard = () => {
   const token = localStorage.getItem('adminToken');
@@ -14,6 +14,9 @@ const Dashboard = () => {
   const [updateId, setUpdateId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [slotDate, setSlotDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [duration, setDuration] = useState('10');
   const [slotCreationLoading, setSlotCreationLoading] = useState(false);
 
   const handleSlotCreation = async (e) => {
@@ -22,14 +25,35 @@ const Dashboard = () => {
       setSlotCreationLoading(true);
       const res = await axios.post(`${BaseUrl}/slot/admin/slots/create`, {
         date: slotDate,
+        startTime,
+        endTime,
+        duration,
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert("Global slots created!");
+      Swal.fire({
+        // position: 'top-end',
+        icon: 'success',
+        title: 'Global slots created!',
+        showConfirmButton: false,
+        timer: 2000,
+        // toast: true,
+      });
       setSlotDate('');
+      setStartTime('');
+      setEndTime('');
+      setDuration('10');
     } catch (err) {
       console.error("Slot creation error:", err.response?.data || err.message);
-      alert("Failed to create slots.");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Slot Creation Failed',
+        text: err.response?.data?.error || 'Failed to create slots.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     } finally {
       setSlotCreationLoading(false);
     }
@@ -41,6 +65,15 @@ const Dashboard = () => {
       setBanners(res.data);
     } catch (err) {
       console.error('Failed to load banners', err);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Banner Load Failed',
+        text: 'Failed to load banners.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -54,11 +87,27 @@ const Dashboard = () => {
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       const maxSize = 2 * 1024 * 1024; // 2MB
       if (!allowedTypes.includes(file.type)) {
-        alert('Only JPG, PNG, and WEBP images are allowed.');
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Invalid File Type',
+          text: 'Only JPG, PNG, and WEBP images are allowed.',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
         return;
       }
       if (file.size > maxSize) {
-        alert('File size must be under 2MB.');
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'File Too Large',
+          text: 'File size must be under 2MB.',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
         return;
       }
       setSelectedFile(file);
@@ -79,24 +128,50 @@ const Dashboard = () => {
         await axios.put(`${BaseUrl}/banner/banners/${updateId}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Banner Updated',
+          text: 'Banner has been successfully updated!',
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
         setUpdateId(null);
       } else {
         await axios.post(`${BaseUrl}/banner/bannerss`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Banner Added',
+          text: 'Banner has been successfully added!',
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
       }
 
       setSelectedFile(null);
-setPreviewURL('');
-setUpdateId(null);
-fetchBanners();
+      setPreviewURL('');
+      setUpdateId(null);
+      fetchBanners();
 
-// Clear file input manually
-const fileInput = document.getElementById('bannerInput');
-if (fileInput) fileInput.value = '';
-
+      // Clear file input manually
+      const fileInput = document.getElementById('bannerInput');
+      if (fileInput) fileInput.value = '';
     } catch (err) {
       console.error('Upload failed', err);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Upload Failed',
+        text: 'Failed to upload banner.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -107,14 +182,40 @@ if (fileInput) fileInput.value = '';
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this banner?')) return;
-    try {
-      await axios.delete(`${BaseUrl}/banner/banners/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchBanners();
-    } catch (err) {
-      console.error('Delete failed', err);
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to delete this banner?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, keep it'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${BaseUrl}/banner/banners/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        Swal.fire({
+          icon: 'success',
+          title: 'Banner Deleted',
+          text: 'Banner has been successfully deleted!',
+          showConfirmButton: false,
+          timer: 2000,
+        });
+        fetchBanners();
+      } catch (err) {
+        console.error('Delete failed', err);
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete banner.',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
+      }
     }
   };
 
@@ -128,6 +229,15 @@ if (fileInput) fileInput.value = '';
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Stats Fetch Failed',
+        text: 'Failed to fetch dashboard stats.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -172,114 +282,146 @@ if (fileInput) fileInput.value = '';
         </div>
       </div>
 
-    <div className="container mt-5">
-      <h4 className="mb-3">📅 Create Slots for Users</h4>
-      <form onSubmit={handleSlotCreation} className="row g-3 align-items-end">
-        <div className="col-md-4">
-          <label className="form-label">Date</label>
-          <input
-            type="date"
-            className="form-control"
-            value={slotDate}
-            onChange={(e) => setSlotDate(e.target.value)}
-            min={moment().format("YYYY-MM-DD")}
-          />
-        </div>
-        <div className="col-md-4">
-          <button
-            type="submit"
-            className="btn btn-success w-100"
-            disabled={slotCreationLoading}
-          >
-            {slotCreationLoading ? 'Creating...' : 'Create Slots'}
-          </button>
-        </div>
-      </form>
-    </div>
-
-
-<div className="container mt-5">
-      <h4 className="mb-3">🖼️ Manage Banners</h4>
-
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="row g-3 align-items-center">
-          <div className="col-auto">
+      <div className="container mt-5">
+        <h4 className="mb-3">📅 Create Slots for Users</h4>
+        <form onSubmit={handleSlotCreation} className="row g-3 align-items-end">
+          <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+            <label className="form-label">Date</label>
             <input
-            id="bannerInput"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
+              type="date"
               className="form-control"
-              style={{ maxWidth: '300px' }}
+              value={slotDate}
+              onChange={(e) => setSlotDate(e.target.value)}
+              min={moment().format("YYYY-MM-DD")}
             />
           </div>
-
-          {previewURL && (
-            <div className="col-auto">
-              <img
-                src={previewURL}
-                alt="Preview"
-                style={{ height: 60, borderRadius: 6, objectFit: 'cover' }}
-              />
-            </div>
-          )}
-
-          <div className="col-auto">
-            <button className="btn btn-primary" type="submit" disabled={loading || !selectedFile}>
-              {updateId ? 'Update Banner' : 'Add Banner'}
+          <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+            <label className="form-label">Start Time</label>
+            <input
+              type="time"
+              className="form-control"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </div>
+          <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+            <label className="form-label">End Time</label>
+            <input
+              type="time"
+              className="form-control"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
+          </div>
+          <div className="col-xxl-2 col-lg-3 col-md-4 col-sm-6">
+            <label className="form-label">Slot Duration (minutes)</label>
+            <select
+              className="form-control"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            >
+              <option value="10">10 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="40">40 minutes</option>
+              <option value="50">50 minutes</option>
+              <option value="60">60 minutes</option>
+            </select>
+          </div>
+          <div className="col-xxl-4 col-md-6 mx-auto">
+            <button
+              type="submit"
+              className="btn btn-success w-100"
+              disabled={slotCreationLoading}
+            >
+              {slotCreationLoading ? 'Creating...' : 'Create Slots'}
             </button>
           </div>
+        </form>
+      </div>
 
-          {updateId && (
+      <div className="container mt-5">
+        <h4 className="mb-3">🖼️ Manage Banners</h4>
+
+        <form onSubmit={handleSubmit} className="mb-4">
+          <div className="row g-3 align-items-center">
             <div className="col-auto">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  setUpdateId(null);
-                  setSelectedFile(null);
-                  setPreviewURL('');
-                }}
-              >
-                Cancel
+              <input
+                id="bannerInput"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="form-control"
+                style={{ maxWidth: '300px' }}
+              />
+            </div>
+
+            {previewURL && (
+              <div className="col-auto">
+                <img
+                  src={previewURL}
+                  alt="Preview"
+                  style={{ height: 60, borderRadius: 6, objectFit: 'cover' }}
+                />
+              </div>
+            )}
+
+            <div className="col-auto">
+              <button className="btn btn-primary" type="submit" disabled={loading || !selectedFile}>
+                {updateId ? 'Update Banner' : 'Add Banner'}
               </button>
             </div>
-          )}
-        </div>
-      </form>
 
-      <div className="row">
-        {banners.map((banner) => (
-          <div className="col-md-3 mb-4" key={banner._id}>
-            <div className="card h-100 shadow-sm">
-              <img
-                src={`${BaseUrl}${banner.imageUrl}`}
-                alt="Banner"
-                className="card-img-top"
-                style={{ height: '180px', objectFit: 'cover' }}
-              />
-              <div className="card-body text-center">
-                <small className="text-muted d-block mb-2">
-                  Uploaded: {moment(banner.uploadedAt).format('MMM D, YYYY')}
-                </small>
+            {updateId && (
+              <div className="col-auto">
                 <button
-                  className="btn btn-sm btn-outline-success w-100 mb-2"
-                  onClick={() => handleEdit(banner._id)}
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setUpdateId(null);
+                    setSelectedFile(null);
+                    setPreviewURL('');
+                  }}
                 >
-                  Update
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-danger w-100"
-                  onClick={() => handleDelete(banner._id)}
-                >
-                  Delete
+                  Cancel
                 </button>
               </div>
-            </div>
+            )}
           </div>
-        ))}
+        </form>
+
+        <div className="row">
+          {banners.map((banner) => (
+            <div className="col-md-3 mb-4" key={banner._id}>
+              <div className="card h-100 shadow-sm">
+                <img
+                  src={`${BaseUrl}${banner.imageUrl}`}
+                  alt="Banner"
+                  className="card-img-top"
+                  style={{ height: '180px', objectFit: 'cover' }}
+                />
+                <div className="card-body text-center">
+                  <small className="text-muted d-block mb-2">
+                    Uploaded: {moment(banner.uploadedAt).format('MMM D, YYYY')}
+                  </small>
+                  <button
+                    className="btn btn-sm btn-outline-success w-100 mb-2"
+                    onClick={() => handleEdit(banner._id)}
+                  >
+                    Update
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-danger w-100"
+                    onClick={() => handleDelete(banner._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
     </div>
   );
 };

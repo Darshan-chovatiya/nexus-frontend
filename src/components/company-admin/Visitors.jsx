@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BaseUrl } from "../service/Uri";
 import CommonHeader from './CommonHeader';
+import Swal from 'sweetalert2';
 
 const Visitors = ({ toggleSidebar, setCurrentPage, isOpen }) => {
   const company = JSON.parse(localStorage.getItem('company'));
@@ -34,7 +35,15 @@ const fetchSlotsForDate = async (date, userId) => {
 
   const handleBookSlot = async () => {
     if (!selectedSlotId || !selectedUserId) {
-      alert("Please select a slot and a user.");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Invalid Selection',
+        text: 'Please select a slot and a user.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
       return;
     }
 
@@ -48,12 +57,28 @@ const fetchSlotsForDate = async (date, userId) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert("Slot booked successfully!");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: 'Slot Booked',
+        text: 'Slot booked successfully!',
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
       setShowSlotModal(false);
       fetchSlotsForDate(selectedDate, selectedUserId);
     } catch (err) {
       console.error("Booking failed:", err.response?.data || err.message);
-      alert("Booking failed: " + (err.response?.data?.error || err.message));
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Booking Failed',
+        text: err.response?.data?.error || 'Failed to book slot.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -67,7 +92,15 @@ const fetchSlotsForDate = async (date, userId) => {
       });
       setOtherCompanies(res.data.data);
     } catch (err) {
-      console.error("Error fetching companies:", err.response?.data || err.message);
+     Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Fetch Companies Failed',
+        text: err.response?.data?.error || 'Failed to load companies.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     } finally {
       setLoading(false);
     }

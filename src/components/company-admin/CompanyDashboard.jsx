@@ -23,12 +23,14 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const [myBookings, setMyBookings] = useState([]);
   const [pendingSent, setPendingSent] = useState([]);
   const [pendingReceived, setPendingReceived] = useState([]);
+  const [scannedBy, setScannedBy] = useState([]);
+  const [scannedByMe, setScannedByMe] = useState([]);
   const [activeTab, setActiveTab] = useState('booked');
 
   const fetchMyBookings = async () => {
     try {
       const token = localStorage.getItem("companyToken");
-      const [bookedRes, sentRes, receivedRes] = await Promise.all([
+      const [bookedRes, sentRes, receivedRes, scannerRes, scanRes] = await Promise.all([
         axios.get(`${BaseUrl}/slot/pair-slot/booked`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
@@ -37,13 +39,21 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
         }),
         axios.get(`${BaseUrl}/slot/pair-slot/pending-received`, {
           headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${BaseUrl}/scan/scanner`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${BaseUrl}/scan/myscan`, {
+          headers: { Authorization: `Bearer ${token}` }
         })
       ]);
       setMyBookings(bookedRes.data);
       setPendingSent(sentRes.data);
       setPendingReceived(receivedRes.data);
+      setScannedBy(scannerRes.data.data);
+      setScannedByMe(scanRes.data.data);
     } catch (err) {
-      console.error("Error fetching bookings:", err.response?.data || err.message);
+      console.error("Error fetching data:", err.response?.data || err.message);
     }
   };
 
@@ -66,7 +76,7 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
         timer: 2000,
         toast: true,
       });
-      fetchMyBookings(); // Refresh all lists
+      fetchMyBookings();
     } catch (err) {
       console.error("Error approving slot:", err.response?.data || err.message);
       Swal.fire({
@@ -87,27 +97,27 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
       await axios.delete(`${BaseUrl}/slot/pair-slots/cancel/${slotId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-       Swal.fire({
-          position: 'top-end',
-          icon: 'success',
-          title: 'Slot Cancelled',
-          text: 'The slot has been successfully cancelled!',
-          showConfirmButton: false,
-          timer: 2000,
-          toast: true,
-        });
-      fetchMyBookings(); // Refresh all lists
+      Swal.fire({
+        position: 'top-end',
+        icon: 'success',
+        title: 'Slot Cancelled',
+        text: 'The slot has been successfully cancelled!',
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+      fetchMyBookings();
     } catch (err) {
       console.error("Error cancelling slot:", err.response?.data || err.message);
       Swal.fire({
-          position: 'top-end',
-          icon: 'error',
-          title: 'Cancellation Failed',
-          text: err.response?.data?.error || 'Failed to cancel slot.',
-          showConfirmButton: false,
-          timer: 3000,
-          toast: true,
-        });
+        position: 'top-end',
+        icon: 'error',
+        title: 'Cancellation Failed',
+        text: err.response?.data?.error || 'Failed to cancel slot.',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -186,7 +196,7 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
   const handleScanResult = async (result) => {
     const scanId = result?.split('/').pop();
     if (!scanId || scanId.length !== 24) {
-     Swal.fire({
+      Swal.fire({
         position: 'top-end',
         icon: 'error',
         title: 'Invalid QR Code',
@@ -201,6 +211,7 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
     try {
       const res = await axios.post(`${BaseUrl}/scan/${scanId}`, { scannerId });
       window.location.href = result;
+      fetchMyBookings(); // Refresh scan data after successful scan
     } catch (err) {
       console.error("Scan error:", err.response?.data || err.message);
       Swal.fire({
@@ -382,6 +393,14 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                   Received Requests
                 </button>
               </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'scans' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('scans')}
+                >
+                  Scan History
+                </button>
+              </li>
             </ul>
 
             <div className="table-responsive">
@@ -398,16 +417,13 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                     {myBookings.length === 0 ? (
                       <tr><td colSpan="3">No approved bookings</td></tr>
                     ) : (
-                      myBookings.map(slot => {
-                        // const otherUser = slot.users.find(user => user._id !== company._id);
-                        return (
-                          <tr key={slot._id}>
-                            <td>{slot.date}</td>
-                            <td>{slot.startTime} - {slot.endTime}</td>
-                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
-                          </tr>
-                        );
-                      })
+                      myBookings.map(slot => (
+                        <tr key={slot._id}>
+                          <td>{slot.date}</td>
+                          <td>{slot.startTime} - {slot.endTime}</td>
+                          <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -427,24 +443,21 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                     {pendingSent.length === 0 ? (
                       <tr><td colSpan="4">No pending sent requests</td></tr>
                     ) : (
-                      pendingSent.map(slot => {
-                        // const otherUser = slot.users.find(user => user._id !== company._id);
-                        return (
-                          <tr key={slot._id}>
-                            <td>{slot.date}</td>
-                            <td>{slot.startTime} - {slot.endTime}</td>
-                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
-                            <td>
-                              <button 
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleCancel(slot._id)}
-                              >
-                                Cancel
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
+                      pendingSent.map(slot => (
+                        <tr key={slot._id}>
+                          <td>{slot.date}</td>
+                          <td>{slot.startTime} - {slot.endTime}</td>
+                          <td>{slot?.otherUser?.name} ({slot?.otherUser?.email})</td>
+                          <td>
+                            <button 
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleCancel(slot._id)}
+                            >
+                              Cancel
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -464,33 +477,86 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                     {pendingReceived.length === 0 ? (
                       <tr><td colSpan="4">No pending received requests</td></tr>
                     ) : (
-                      pendingReceived.map(slot => {
-                        // const otherUser = slot.users.find(user => user._id !== company._id);
-                        return (
-                          <tr key={slot._id}>
-                            <td>{slot.date}</td>
-                            <td>{slot.startTime} - {slot.endTime}</td>
-                            <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
-                            <td>
-                              <button 
-                                className="btn btn-sm btn-success me-2"
-                                onClick={() => handleApprove(slot._id)}
-                              >
-                                Accept
-                              </button>
-                              <button 
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleCancel(slot._id)}
-                              >
-                                Reject
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
+                      pendingReceived.map(slot => (
+                        <tr key={slot._id}>
+                          <td>{slot.date}</td>
+                          <td>{slot.startTime} - {slot.endTime}</td>
+                          <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                          <td>
+                            <button 
+                              className="btn btn-sm btn-success me-2"
+                              onClick={() => handleApprove(slot._id)}
+                            >
+                              Accept
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleCancel(slot._id)}
+                            >
+                              Reject
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
+              )}
+
+              {activeTab === 'scans' && (
+                <div>
+                  <h6>Scanned By Others</h6>
+                  <table className="table table-bordered table-sm text-center">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Email</th>
+                        <th>Scanned At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scannedBy.length === 0 ? (
+                        <tr><td colSpan="4">No one has scanned your QR code</td></tr>
+                      ) : (
+                        scannedBy.map(record => (
+                          <tr key={record._id}>
+                            <td>{record.scannerId.prefix} {record.scannerId.name}</td>
+                            <td>{record.scannerId.company}</td>
+                            <td>{record.scannerId.email}</td>
+                            <td>{new Date(record.scannedAt).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  <h6 className="mt-4">Scanned By Me</h6>
+                  <table className="table table-bordered table-sm text-center">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Email</th>
+                        <th>Scanned At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scannedByMe.length === 0 ? (
+                        <tr><td colSpan="4">You haven't scanned any QR codes</td></tr>
+                      ) : (
+                        scannedByMe.map(record => (
+                          <tr key={record._id}>
+                            <td>{record.scanId.prefix} {record.scanId.name}</td>
+                            <td>{record.scanId.company}</td>
+                            <td>{record.scanId.email}</td>
+                            <td>{new Date(record.scannedAt).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BaseUrl } from '../service/Uri';
 import axios from 'axios';
@@ -19,7 +19,8 @@ const CompanySignup = () => {
     password: '',
     aboutBusiness: '',
     aboutProduct: '',
-    category: 'Pure B2B',
+    category: '',
+    mobile: ''
   });
 
   const [profileImage, setProfileImage] = useState(null);
@@ -27,9 +28,87 @@ const CompanySignup = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  // Fetch states and categories on component mount
+  useEffect(() => {
+    const fetchStatesAndCategories = async () => {
+      setStatesLoading(true);
+      setCategoriesLoading(true);
+      try {
+        const [statesRes, categoriesRes] = await Promise.all([
+          axios.get(`${BaseUrl}/company/states`),
+          axios.get(`${BaseUrl}/category/categories`)
+        ]);
+
+        if (statesRes.data.status === 200 && Array.isArray(statesRes.data.data)) {
+          const uniqueStates = statesRes.data.data.filter(
+            (state, index, self) =>
+              index === self.findIndex((s) => s.name === state.name)
+          );
+          setStates(uniqueStates);
+        } else {
+          setErrorMsg(statesRes.data.message || 'Failed to fetch states.');
+        }
+
+        if (categoriesRes.data.status === 200 && Array.isArray(categoriesRes.data.data)) {
+          setCategories(categoriesRes.data.data);
+          if (categoriesRes.data.data.length > 0) {
+            setForm((prev) => ({ ...prev, category: categoriesRes.data.data[0]._id }));
+          }
+        } else {
+          setErrorMsg(categoriesRes.data.message || 'Failed to fetch categories.');
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setErrorMsg(err?.response?.data?.message || 'Error fetching data. Please try again.');
+      } finally {
+        setStatesLoading(false);
+        setCategoriesLoading(false);
+      }
+    };
+    fetchStatesAndCategories();
+  }, []);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!form.state) {
+        setCities([]);
+        return;
+      }
+      setCitiesLoading(true);
+      try {
+        const res = await axios.post(`${BaseUrl}/company/cities-by-state`, { stateId: form.state });
+        if (res.data.status === 200 && Array.isArray(res.data.data)) {
+          setCities(res.data.data);
+        } else {
+          setCities([]);
+          setErrorMsg(res.data.message || 'No cities found for the selected state.');
+        }
+      } catch (err) {
+        console.error('Cities fetch error:', err);
+        setCities([]);
+        setErrorMsg(err?.response?.data?.message || 'Error fetching cities. Please try again.');
+      } finally {
+        setCitiesLoading(false);
+      }
+    };
+    fetchCities();
+  }, [form.state]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'state' ? { city: '' } : {}),
+    }));
   };
 
   const handleImageChange = (e) => {
@@ -48,32 +127,31 @@ const CompanySignup = () => {
         formData.append(key, value);
       });
       if (profileImage) {
-        formData.append('profileImage', profileImage); // field name must match backend (e.g. multer expects "logo")
+        formData.append('profileImage', profileImage);
       }
-      
-      
+
       const res = await axios.post(`${BaseUrl}/company/signup`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      console.log(res.data,"data");
 
-      if (res.data?.data) {
-        setSuccessMsg("Company account created! Redirecting to login...");
+      if (res.data.status === 200 && res.data.data) {
+        setSuccessMsg('Company account created! Redirecting to login...');
         setTimeout(() => {
-          navigate(`/`);
+          navigate('/');
         }, 2000);
       } else {
-        setErrorMsg(res.data.message || "Signup failed.");
+        setErrorMsg(res.data.message || 'Signup failed.');
       }
     } catch (err) {
-      setErrorMsg(err?.response?.data?.message || "Signup failed. Try again.");
+      console.error('Signup error:', err);
+      setErrorMsg(err?.response?.data?.message || 'Signup failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className=" d-flex align-items-center justify-content-center p-4 signup_bg" >
+    <div className="d-flex align-items-center justify-content-center p-4 signup_bg">
       <div className="float-blob blob1"></div>
       <div className="float-blob blob2"></div>
 
@@ -89,10 +167,10 @@ const CompanySignup = () => {
             <div className="col-md-4">
               <label className="form-label">Prefix</label>
               <select className="form-select" name="prefix" value={form.prefix} onChange={handleChange} required>
-                <option>Mr</option>
-                <option>Mrs</option>
-                <option>Ms</option>
-                <option>Dr</option>
+                <option value="Mr">Mr</option>
+                <option value="Mrs">Mrs</option>
+                <option value="Ms">Ms</option>
+                <option value="Dr">Dr</option>
               </select>
             </div>
 
@@ -124,16 +202,48 @@ const CompanySignup = () => {
               <label className="form-label">State</label>
               <div className="input-group">
                 <span className="input-group-text"><FaGlobeAsia /></span>
-                <input type="text" className="form-control" name="state" value={form.state} onChange={handleChange} required />
+                <select
+                  className="form-select"
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  required
+                  disabled={statesLoading || states.length === 0}
+                >
+                  <option value="">Select State</option>
+                  {states.map((state) => (
+                    <option key={state.id} value={state.id}>
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+              {statesLoading && <small className="text-muted">Loading states...</small>}
+              {!statesLoading && states.length === 0 && <small className="text-danger">No states available</small>}
             </div>
 
             <div className="col-md-6">
               <label className="form-label">City</label>
               <div className="input-group">
                 <span className="input-group-text"><FaCity /></span>
-                <input type="text" className="form-control" name="city" value={form.city} onChange={handleChange} required />
+                <select
+                  className="form-select"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  required
+                  disabled={citiesLoading || !form.state || cities.length === 0}
+                >
+                  <option value="">Select City</option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.id}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+              {citiesLoading && <small className="text-muted">Loading cities...</small>}
+              {!citiesLoading && form.state && cities.length === 0 && <small className="text-danger">No cities available</small>}
             </div>
 
             <div className="col-12">
@@ -149,7 +259,7 @@ const CompanySignup = () => {
               <div className="input-group">
                 <span className="input-group-text"><FaLock /></span>
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   className="form-control"
                   name="password"
                   minLength={6}
@@ -181,18 +291,33 @@ const CompanySignup = () => {
 
             <div className="col-12">
               <label className="form-label">Category</label>
-              <select className="form-select" name="category" value={form.category} onChange={handleChange} required>
-                <option>Pure B2B</option>
-                <option>Pure B2C</option>
-                <option>B2B + B2C</option>
-              </select>
+              <div className="input-group">
+                <span className="input-group-text"><FaInfoCircle /></span>
+                <select
+                  className="form-select"
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  required
+                  disabled={categoriesLoading || categories.length === 0}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {categoriesLoading && <small className="text-muted">Loading categories...</small>}
+              {!categoriesLoading && categories.length === 0 && <small className="text-danger">No categories available</small>}
             </div>
 
             <div className="col-12">
               <label className="form-label">Profile Image</label>
               <div className="input-group">
                 <span className="input-group-text"><FaImage /></span>
-                <input type="file" className="form-control" accept="image/*" onChange={handleImageChange} required />
+                <input type="file" className="form-control" accept="image/*" onChange={handleImageChange} />
               </div>
             </div>
           </div>
@@ -202,7 +327,7 @@ const CompanySignup = () => {
 
           <div className="d-grid mt-4">
             <button type="submit" className="btn btn-primary fw-bold py-2" disabled={loading}>
-              {loading ? "Creating Account..." : <><FaSignInAlt className="me-2" /> Create Company Account</>}
+              {loading ? 'Creating Account...' : <><FaSignInAlt className="me-2" /> Create Company Account</>}
             </button>
           </div>
 

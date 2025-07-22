@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BaseUrl } from '../service/Uri';
 import CommonHeader from './CommonHeader';
@@ -13,10 +13,10 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
     state: company.state || '',
     city: company.city || '',
     email: company.email || '',
-    category: company.category || 'Pure B2B',
+    category: company.category || '',
     aboutBusiness: company.aboutBusiness || '',
     aboutProduct: company.aboutProduct || '',
-    profileImage: null
+    profileImage: null,
   });
 
   const [errorMsg, setErrorMsg] = useState('');
@@ -24,17 +24,101 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  // Fetch states and categories on component mount
+  useEffect(() => {
+    const fetchStatesAndCategories = async () => {
+      setStatesLoading(true);
+      setCategoriesLoading(true);
+      try {
+        const [statesRes, categoriesRes] = await Promise.all([
+          axios.get(`${BaseUrl}/company/states`),
+          axios.get(`${BaseUrl}/category/categories`),
+        ]);
+
+        if (statesRes.data.status === 200 && Array.isArray(statesRes.data.data)) {
+          const uniqueStates = statesRes.data.data.filter(
+            (state, index, self) =>
+              index === self.findIndex((s) => s.name === state.name)
+          );
+          setStates(uniqueStates);
+        } else {
+          setErrorMsg(statesRes.data.message || 'Failed to fetch states.');
+        }
+
+        if (categoriesRes.data.status === 200 && Array.isArray(categoriesRes.data.data)) {
+          setCategories(categoriesRes.data.data);
+        } else {
+          setErrorMsg(categoriesRes.data.message || 'Failed to fetch categories.');
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setErrorMsg(err?.response?.data?.message || 'Error fetching data. Please try again.');
+      } finally {
+        setStatesLoading(false);
+        setCategoriesLoading(false);
+      }
+    };
+    fetchStatesAndCategories();
+  }, []);
+
+  // Fetch cities when state changes or on component mount if company.state exists
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!formData.state) {
+        setCities([]);
+        return;
+      }
+      const selectedState = states.find((state) => state.name === formData.state);
+      if (!selectedState) {
+        setCities([]);
+        return;
+      }
+      setCitiesLoading(true);
+      try {
+        const res = await axios.post(`${BaseUrl}/company/cities-by-state`, { name: selectedState.name });
+        if (res.data.status === 200 && Array.isArray(res.data.data)) {
+          setCities(res.data.data);
+          // Ensure the current city is still selected if it exists in the fetched cities
+          if (!res.data.data.some((city) => city.name === formData.city)) {
+            setFormData((prev) => ({ ...prev, city: '' }));
+          }
+        } else {
+          setCities([]);
+          setErrorMsg(res.data.message || 'No cities found for the selected state.');
+        }
+      } catch (err) {
+        console.error('Cities fetch error:', err);
+        setCities([]);
+        setErrorMsg(err?.response?.data?.message || 'Error fetching cities. Please try again.');
+      } finally {
+        setCitiesLoading(false);
+      }
+    };
+    fetchCities();
+  }, [formData.state, states]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     if (type === 'file') {
       setFormData({ ...formData, profileImage: files[0] });
     } else {
-      setFormData({ ...formData, [name]: value });
+      // Only reset city if the state is changed
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        ...(name === 'state' && value !== prev.state ? { city: '' } : {}),
+      }));
     }
   };
 
@@ -51,8 +135,8 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
       const res = await axios.put(`${BaseUrl}/company/profile/update/${company._id}`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
       if (res.data?.data) {
         localStorage.setItem('company', JSON.stringify(res.data.data));
@@ -84,7 +168,7 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
     try {
       const token = localStorage.getItem('companyToken');
       const res = await axios.put(`${BaseUrl}/company/change-password/${company._id}`, passwordData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (res.data?.message === 'Password updated successfully') {
         setPasswordSuccess('Password updated successfully.');
@@ -127,12 +211,46 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
 
             <div className="mb-3">
               <label className="form-label">State</label>
-              <input className="form-control" name="state" value={formData.state} onChange={handleChange} required />
+              <select
+                className="form-select"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                required
+                disabled={statesLoading || states.length === 0}
+              >
+                <option value="">Select State</option>
+                {states.map((state) => (
+                  <option key={state.id} value={state.name}>
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+              {statesLoading && <small className="text-muted">Loading states...</small>}
+              {!statesLoading && states.length === 0 && <small className="text-danger">No states available</small>}
             </div>
 
             <div className="mb-3">
               <label className="form-label">City</label>
-              <input className="form-control" name="city" value={formData.city} onChange={handleChange} required />
+              <select
+                className="form-select"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                required
+                disabled={citiesLoading || !formData.state || cities.length === 0}
+              >
+                <option value="">Select City</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.name}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+              {citiesLoading && <small className="text-muted">Loading cities...</small>}
+              {!citiesLoading && formData.state && cities.length === 0 && (
+                <small className="text-danger">No cities available</small>
+              )}
             </div>
 
             <div className="mb-3">
@@ -142,29 +260,65 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
 
             <div className="mb-3">
               <label className="form-label">Category</label>
-              <select className="form-select" name="category" value={formData.category} onChange={handleChange} required>
-                <option>Pure B2B</option>
-                <option>Pure B2C</option>
-                <option>B2B + B2C</option>
+              <select
+                className="form-select"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                required
+                disabled={categoriesLoading || categories.length === 0}
+              >
+                <option value="">Select Category</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
+              {categoriesLoading && <small className="text-muted">Loading categories...</small>}
+              {!categoriesLoading && categories.length === 0 && <small className="text-danger">No categories available</small>}
             </div>
 
             <div className="mb-3">
               <label className="form-label">About Business</label>
-              <textarea className="form-control" rows="2" name="aboutBusiness" value={formData.aboutBusiness} onChange={handleChange} required />
+              <textarea
+                className="form-control"
+                rows="2"
+                name="aboutBusiness"
+                value={formData.aboutBusiness}
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className="mb-3">
               <label className="form-label">About Product</label>
-              <textarea className="form-control" rows="2" name="aboutProduct" value={formData.aboutProduct} onChange={handleChange} required />
+              <textarea
+                className="form-control"
+                rows="2"
+                name="aboutProduct"
+                value={formData.aboutProduct}
+                onChange={handleChange}
+                required
+              />
             </div>
 
             <div className="mb-3">
               <label className="form-label">Profile Image</label>
-              <input className="form-control" type="file" accept="image/*" name="profileImage" onChange={handleChange} />
+              <input
+                className="form-control"
+                type="file"
+                accept="image/*"
+                name="profileImage"
+                onChange={handleChange}
+              />
               {company.profileImage && (
                 <div className="mt-2">
-                  <img src={`${BaseUrl}/${company.profileImage}`} alt="Current Profile" style={{ width: '100px', height: '100px', objectFit: 'cover' }} />
+                  <img
+                    src={`${BaseUrl}/${company.profileImage}`}
+                    alt="Current Profile"
+                    style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                  />
                 </div>
               )}
             </div>
@@ -180,15 +334,38 @@ const ProfileSetting = ({ toggleSidebar, setCurrentPage }) => {
           <form onSubmit={handlePasswordSubmit} className="card p-4 shadow-sm">
             <div className="mb-3">
               <label className="form-label">Current Password</label>
-              <input type="password" name="currentPassword" className="form-control" required onChange={handlePasswordChange} />
+              <input
+                type="password"
+                name="currentPassword"
+                className="form-control"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                required
+              />
             </div>
             <div className="mb-3">
               <label className="form-label">New Password</label>
-              <input type="password" name="newPassword" className="form-control" required minLength="6" onChange={handlePasswordChange} />
+              <input
+                type="password"
+                name="newPassword"
+                className="form-control"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+                minLength="6"
+              />
             </div>
             <div className="mb-3">
               <label className="form-label">Confirm New Password</label>
-              <input type="password" name="confirmPassword" className="form-control" required minLength="6" onChange={handlePasswordChange} />
+              <input
+                type="password"
+                name="confirmPassword"
+                className="form-control"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+                minLength="6"
+              />
             </div>
             {passwordError && <div className="alert alert-danger">{passwordError}</div>}
             {passwordSuccess && <div className="alert alert-success">{passwordSuccess}</div>}

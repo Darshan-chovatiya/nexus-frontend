@@ -421,7 +421,7 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                         <tr key={slot._id}>
                           <td>{slot.date}</td>
                           <td>{slot.startTime} - {slot.endTime}</td>
-                          <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                          <td>{slot?.otherUser?.name} ({slot?.otherUser?.email})</td>
                         </tr>
                       ))
                     )}
@@ -481,7 +481,7 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                         <tr key={slot._id}>
                           <td>{slot.date}</td>
                           <td>{slot.startTime} - {slot.endTime}</td>
-                          <td>{slot.otherUser.name} ({slot.otherUser.email})</td>
+                          <td>{slot?.otherUser?.name} ({slot?.otherUser?.email})</td>
                           <td>
                             <button 
                               className="btn btn-sm btn-success me-2"
@@ -521,9 +521,9 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                       ) : (
                         scannedBy.map(record => (
                           <tr key={record._id}>
-                            <td>{record.scannerId.prefix} {record.scannerId.name}</td>
-                            <td>{record.scannerId.company}</td>
-                            <td>{record.scannerId.email}</td>
+                            <td>{record?.scannerId?.prefix} {record?.scannerId?.name}</td>
+                            <td>{record?.scannerId?.company}</td>
+                            <td>{record?.scannerId?.email}</td>
                             <td>{new Date(record.scannedAt).toLocaleString()}</td>
                           </tr>
                         ))
@@ -547,9 +547,9 @@ const CompanyDashboard = ({ setCurrentPage, toggleSidebar }) => {
                       ) : (
                         scannedByMe.map(record => (
                           <tr key={record._id}>
-                            <td>{record.scanId.prefix} {record.scanId.name}</td>
-                            <td>{record.scanId.company}</td>
-                            <td>{record.scanId.email}</td>
+                            <td>{record?.scanId?.prefix} {record?.scanId?.name}</td>
+                            <td>{record?.scanId?.company}</td>
+                            <td>{record?.scanId?.email}</td>
                             <td>{new Date(record.scannedAt).toLocaleString()}</td>
                           </tr>
                         ))

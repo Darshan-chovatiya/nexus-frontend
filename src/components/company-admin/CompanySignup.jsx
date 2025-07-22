@@ -77,30 +77,38 @@ const CompanySignup = () => {
 
   // Fetch cities when state changes
   useEffect(() => {
-    const fetchCities = async () => {
-      if (!form.state) {
+  const fetchCities = async () => {
+    if (!form.state) {
+      setCities([]);
+      return;
+    }
+    setCitiesLoading(true);
+    try {
+      // Find the state object to get the state name
+      const selectedState = states.find((state) => state.name === form.state);
+      if (!selectedState) {
         setCities([]);
+        setErrorMsg('Selected state not found.');
         return;
       }
-      setCitiesLoading(true);
-      try {
-        const res = await axios.post(`${BaseUrl}/company/cities-by-state`, { stateId: form.state });
-        if (res.data.status === 200 && Array.isArray(res.data.data)) {
-          setCities(res.data.data);
-        } else {
-          setCities([]);
-          setErrorMsg(res.data.message || 'No cities found for the selected state.');
-        }
-      } catch (err) {
-        console.error('Cities fetch error:', err);
+
+      const res = await axios.post(`${BaseUrl}/company/cities-by-state`, { name: selectedState.name });
+      if (res.data.status === 200 && Array.isArray(res.data.data)) {
+        setCities(res.data.data);
+      } else {
         setCities([]);
-        setErrorMsg(err?.response?.data?.message || 'Error fetching cities. Please try again.');
-      } finally {
-        setCitiesLoading(false);
+        setErrorMsg(res.data.message || 'No cities found for the selected state.');
       }
-    };
-    fetchCities();
-  }, [form.state]);
+    } catch (err) {
+      console.error('Cities fetch error:', err);
+      setCities([]);
+      setErrorMsg(err?.response?.data?.message || 'Error fetching cities. Please try again.');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+  fetchCities();
+}, [form.state, states]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -212,7 +220,7 @@ const CompanySignup = () => {
                 >
                   <option value="">Select State</option>
                   {states.map((state) => (
-                    <option key={state.id} value={state.id}>
+                    <option key={state.id} value={state.name}>
                       {state.name}
                     </option>
                   ))}
@@ -236,7 +244,7 @@ const CompanySignup = () => {
                 >
                   <option value="">Select City</option>
                   {cities.map((city) => (
-                    <option key={city.id} value={city.id}>
+                    <option key={city.id} value={city.name}>
                       {city.name}
                     </option>
                   ))}
@@ -303,7 +311,7 @@ const CompanySignup = () => {
                 >
                   <option value="">Select Category</option>
                   {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
+                    <option key={category._id} value={category.name}>
                       {category.name}
                     </option>
                   ))}
